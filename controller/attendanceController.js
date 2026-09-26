@@ -1,25 +1,25 @@
 import Attendance from '../models/attendance.js';
 
 // Create a new attendance record
-const createAttendance = async (req, res) => {
+const createAttendance = async (req, res, next) => {
     try {
-        const { studentName, status } = req.body;
-        if (!studentName || !status) {
-            return res.status(400).json({ message: "Student name and status is required" });
+        const { studentId, status } = req.body;
+        if (!studentId || !status) {
+            return res.status(400).json({ message: "Student ID and status is required" });
         }
-        const attendanceRecord = new Attendance({ studentName, status });
+        const attendanceRecord = new Attendance({ studentId, status });
         await attendanceRecord.save(); 
         return res.status(201).json({
             message: "Attendance record created successfully",
             data: attendanceRecord
         })
     } catch (error) {
-        return res.status(500).json({ message: "Error creating attendance record", error: error.message });
+        next(error);
     }
 };
 
 // Fetch all attendance records
-const fetchAttendance = async (req, res) => {
+const fetchAttendance = async (req, res, next) => {
     try {
         const attendanceRecords = await Attendance.find();
 
@@ -40,20 +40,39 @@ const fetchAttendance = async (req, res) => {
         });
 
     } catch (error) {
-        return res.status(500).json({
-            message: "Error fetching attendance reocrds collection",
-            error: error.message
-        })
+        next(error);
     }
 };
 
-// Update an attendance record
-const updateAttendance = async (req, res) => {
+//Fetch a single student attendance record
+const getStudentAttendance = async (req, res, next) =>{
     try {
-        const { id } = req.params;
+        const attendanceRecord = await Attendance.findOne({studentId});
 
-        const updateRecord = await Attendance.findByIdAndUpdate(
-            id, req.body, { new: true, runValidators: true } 
+        if (!attendanceRecord) {
+            return res.status(404).json({ 
+                message: "Student attendance record is not found"
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: attendanceRecord
+        });
+    } catch(error) {
+        next(error);
+    }
+}
+
+// Update an attendance record
+const updateAttendance = async (req, res, next) => {
+    try {
+        const { studentId } = req.params;
+
+        const updateRecord = await Attendance.findOneAndUpdate(
+            {studentId}, 
+            req.body, 
+            { new: true, runValidators: true } 
         );
 
         if (!updateRecord) {
@@ -65,18 +84,15 @@ const updateAttendance = async (req, res) => {
             data: updateRecord
         });
     } catch (error) {
-        return res.status(500).json({ 
-            message: "Error updating attendance record",
-            error: error.message
-        });
+        next(error);
     }
 }
 
 //Delete an existing attendance record
 const deleteAttendance = async(req, res) => {
     try {
-        const { id } = req.params;
-        const deleteRecord = await Attendance.findByIdAndDelete(id);
+        const { studentId } = req.params;
+        const deleteRecord = await Attendance.findOneAndDelete(studentId);
 
         if (!deleteRecord) {
             return res.status(404).json({message: "Attendance record NOT FOUND"})
@@ -86,11 +102,8 @@ const deleteAttendance = async(req, res) => {
             message: "Attendance record Deleted successfully"
         })
     } catch (error) {
-        return res.status(500).json({
-            message: "Error deleting attendance record occured",
-            error: error.message 
-        });
+        next(error);
     }
 } 
 
-export { createAttendance, fetchAttendance, updateAttendance, deleteAttendance };
+export { createAttendance, fetchAttendance, getStudentAttendance, updateAttendance, deleteAttendance };

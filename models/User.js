@@ -6,7 +6,6 @@ const userSchema = new mongoose.Schema({
     fullName: {
         type: String,
         required: true,
-        unique: true,
         trim: true
     },
 
@@ -26,16 +25,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['user', 'admin'],
         default: 'user'
-    }}, {timestamp: true});
+    }}, {timestamps: true});
 
 // Auto-generate studentID 
-userSchema.pre('save', async function (next) {
-    if (this.isNew && this.role == 'user' && !this.studentID) {
-        return next();
+userSchema.pre('save', async function () {
+    if (this.isNew && this.role == 'user' && !this.studentId) {
+        return;
     }
 
     try {
-        const ethYear = getEthiopianYearTwoDigits;
+        const ethYear = getEthiopianYearTwoDigits();
         const lastStudent = await mongoose.model('User').findOne({
             studentId: new RegExp(`/${ethYear}`),
         }).sort({createdAt: -1});
@@ -44,7 +43,7 @@ userSchema.pre('save', async function (next) {
 
         if(lastStudent && lastStudent.studentId) {
             const parts = lastStudent.studentId.split('/');
-            const lastNumber = parsenInt(parts[1], 10);
+            const lastNumber = parseInt(parts[1], 10);
             nextNumber = lastNumber + 1;
         }
 
@@ -52,23 +51,22 @@ userSchema.pre('save', async function (next) {
         this.studentId = `መርሐ/${formattedNumber}/${ethYear}`;
         
     } catch(error) {
-        next(error);
+        throw error;
     }
 });
 
 // Password Hashing
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('passwordHash')) {
-        return next();
+userSchema.pre('save', async function () {
+    if (!this.isModified('passwordHash') || this.passwordHash.startsWith('$2b$')) {
+        return;
     }   
     try {
         const salt = await bcrypt.genSalt(10);
         this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
-        next();
     } catch(error) {
-        next(error);
+        throw error;
     }
 });
 
-const User = mongoose.model('User', attendanceSchema);
+const User = mongoose.model('User', userSchema);
 export default User;

@@ -1,21 +1,33 @@
-import { body, param } from 'express-validator';
+import jwt from 'jsonwebtoken';
+import User from '../models/user.js';
 
-const createAttendanceRules = [
-    body('studentName') 
-        .notEmpty().withMessage('Student name is requied'),
-    body('status')
-        .notEmpty().withMessage('Attendance status is requied')
-        .isIn(['present', 'absent', 'late', 'excused']).withMessage('Status must be either present, absent, late, excused')
-];
+const protect = async (req, res, next) => {
+    let token;
 
-const updateAttendanceRules = [
-    param('id')
-        .isMongoId().withMessage('Invalid MongoDB object id in url parameter'),
-    body('studentName')
-        .optional(),
-    body('status')
-        .optional()
-        .isIn(['present', 'absent', 'late', 'excused']).withMessage('Status must be either present, absent, late, excused')
-];
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer')) {
+        return res.status(401).json({message: "Please provide Authorization key and value in Header"});
+    }
 
-export { createAttendanceRules, updateAttendanceRules };
+    token = authHeader.split(' ')[1]; 
+    if(!token) {
+        return res.status(401).json({message: "Unauthorized, no token provided"});
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.SECRET_KEY);
+        req.user = await User.findById(decoded.id).select('-passwordHash');
+    } catch(error) {
+        return res.status(401).json({ message: "Unauthorized, token failed or expired"})
+    }
+}
+
+const adminOnly = (req, res, next) => {
+    if (req.user && req.user.role === 'admin') {
+        next();
+    } else {
+        return res.status(403).json({message:"Access denied:  Admin privileges required"});
+    }
+}
+
+export {protect, adminOnly};
