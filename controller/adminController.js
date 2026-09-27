@@ -1,4 +1,6 @@
 import User from '../models/user.js';
+import { getStudentId } from '../utils/ethDateHelper.js';
+import bcrypt from 'bcrypt';
 
 // Add student to system
 const createStudent = async (req, res, next) => {
@@ -7,9 +9,17 @@ const createStudent = async (req, res, next) => {
         if(!fullName || !password) {
             return res.status(400).json({ messsage: "Please provide Full name and temporary password of the student"});
         }
+
+        const studentId = await getStudentId();
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
         const newStudent = await User.create({ 
             fullName, 
-            passwordHash: password 
+            studentId,
+            passwordHash: hashedPassword,
+            role: 'user'
         });
 
 

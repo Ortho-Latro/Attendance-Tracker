@@ -1,33 +1,36 @@
 import 'dotenv/config';
-import bcrypt from 'bcrypt';
 import User from '../models/user.js';
+import bcrypt from 'bcrypt';
 
 const seedAdmin = async () => {
     try {
-        const adminExists = await User.findOne({
-            $or: [
-                { studentId: process.env.ADMIN_ID},
-                { fullName: "Admin"}
-            ]
-        });
+        const adminId = process.env.ADMIN_ID;
 
-        if (adminExists) {
-            console.log("Admin account already exists");
+        const exisitngAdmin = await User.findOne({
+            $or: [
+                { studentId: adminId },
+                { fullName: process.env.ADMIN_FULL_NAME }
+            ]
+        })
+
+        if (exisitngAdmin) {
+            console.log('Admin accoutn already existed');
             return;
         }
 
         const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
 
         await User.create({
-            studentId: process.env.ADMIN_ID,
-            fullName: 'Admin',
+            fullName: process.env.ADMIN_FULL_NAME,
+            studentId: adminId,
             passwordHash: hashedPassword,
-            role: 'admin' 
+            role: 'admin'
         })
-        console.log("Default Admin account created successfully!");
-    } catch(error) {
-        console.log("Admin seeding failed: ",error.message);
+
+        console.log("Admin account seeded successfully");
+    } catch (error) {
+        console.error("Error seeding admin: ",  error.message);
     }
-}; 
+};
 
 export {seedAdmin};
