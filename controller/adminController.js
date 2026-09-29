@@ -41,11 +41,7 @@ const createStudent = async (req, res, next) => {
 // Listing all students from the system
 const getAllStudents = async (req, res, next) => {
     try {
-        const students = await User.find(
-            {role:'user'}
-            .select('-passwordHash')
-            .sort({ createdAt: -1 })
-        );
+        const students = await User.find({role:"user"}).select('fullName studentId -_id').sort({ createdAt:-1});
         return res.status(200).json({
             success: 'true',
             message: "Students list retrieved successfully",
@@ -63,10 +59,7 @@ const getAllStudents = async (req, res, next) => {
 const getStudentById = async (req, res, next) => {
     try {
         const {studentId} = req.params;
-        const student = await User.find(
-            {studentId}
-            .select('-passwordHash')
-        );
+        const student = await User.find({role:"user"}).select('fullName studentId -_id');
 
         if(!student) {
             return res.status(404).json({message: "Studnet NOT FOUND"});
