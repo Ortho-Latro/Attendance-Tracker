@@ -10,11 +10,14 @@ const createAttendanceRules = [
 ];
 
 const updateAttendanceRules = [
-    param('id')
+    param('studentId')
         .notEmpty().withMessage('Student ID is required')
         .matches(/^መርሐ\/\d{4}\/\d{2}$/).withMessage('Invalid Student ID, check the sample list'),
     body('studentName')
         .optional(),
+        body('date') 
+        .notEmpty().withMessage('Date is required to update attendance record')
+        .isISO8601().withMessage('Invalid date format (must be YYYY - MM - DD'),
     body('status')
         .optional()
         .isIn(['present', 'absent', 'late', 'excused']).withMessage('Status must be either present, absent, late, excused')
