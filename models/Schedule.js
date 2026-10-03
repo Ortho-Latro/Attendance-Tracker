@@ -1,9 +1,30 @@
 import mongoose from 'mongoose';
 
+const timeWindowSchema = new mongoose.Schema({
+    days: [{
+        type: String,
+        enum: ['Friday', 'Saturday', 'Sunday'],
+        required: true 
+    }],
+    startTime: {
+        type: String, 
+        required: true
+    },
+    lateThreshold: {
+        type: String,
+        required: true
+    },
+    endTime: {
+        type: String,
+        required: true
+    }
+}, {_id: false });
+
 const scheduleSchema = new mongoose.Schema({
     className: {
         type: String,
         required: true,
+        unique: true,
         trim: true
     },
 
@@ -12,35 +33,39 @@ const scheduleSchema = new mongoose.Schema({
         default: true
     },
 
-    activeDays: {
-        type: [String],
-        required: true,
-        enum: ['Friday', 'Saturday', 'Sunday']
-    },
-
-    startTime: {
-        type: String,
-        required: true,
-        match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Please provide a 24 - hour format.']
-    },
-
-    lateThreshold: {
-        type: String,
-        required: true,
-        match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Please provide a 24 - hour format.']
-    },
-
-    endTime: {
-        type: String,
-        required: true,
-        match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Please provide a 24 - hour format.']
-    },
-
-    createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    }
+    regularSchedule : [timeWindowSchema],
+    
+    temporaryOverrides: [{
+        title: {
+            type: String,
+            default: 'Temporary Session'
+        },
+        startDate: {
+            type: Date,
+            required: true,
+        },
+        endDate: {
+            type: Date,
+            required: true
+        },
+        days: [{
+            type: String,
+            enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            required: true
+        }],
+            startTime: {
+            type: String, 
+            required: true
+        },
+            lateThreshold: {
+            type: String,
+            required: true
+        },
+        endTime: {
+            type: String,
+            required: true
+        }
+    }]
 }, {timestamps: true});
 
 const Schedule = mongoose.model('Schedule', scheduleSchema);
