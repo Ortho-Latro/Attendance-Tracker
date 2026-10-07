@@ -1,5 +1,5 @@
 const timeToMinutes= (timeString) => {
-    if(!timeString || timeString !== 'string') return 0;
+    if(!timeString || typeof timeString !== 'string') return 0;
 
     const [hours, minutes] = timeString.split(':').map(Number);
     return (hours * 60) + minutes;
