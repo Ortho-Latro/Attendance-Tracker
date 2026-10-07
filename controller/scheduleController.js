@@ -1,9 +1,9 @@
-import Schedule from "../models/Schedule";
+import Schedule from "../models/Schedule.js";
 
 const createOrUpdateSchedule = async (req, res) => {
     try {
-        const {className, regularWindows } = req.body;
-        if (!className || !regularWindows || !Array.isArray(regularWindows) || regularWindows.length === 0) {
+        const {className, regularSchedule } = req.body;
+        if (!className || !regularSchedule || !Array.isArray(regularSchedule) || regularSchedule.length === 0) {
             return res.status(400).json({ 
                 success: false,
                 message: "Please provide a class name and a regular schedule"
@@ -11,10 +11,10 @@ const createOrUpdateSchedule = async (req, res) => {
         }
     
         const updatedSchdule = await Schedule.findOneAndUpdate(
-            { calssName: className.trim()},
+            { className: className.trim()},
             { 
                 className: className.trim(),
-                regularWindows
+                regularSchedule
             },
             {
                 new: true,
@@ -48,7 +48,7 @@ const addTemporarySchedule = async (req, res) => {
         const start = new Date(startDate);
         const end = new Date(endDate);
         if (start > end) {
-            return res.status(400)({
+            return res.status(400).json({
                 success: false,
                 message: "End date can not be earlier than start date."
             });
@@ -73,7 +73,7 @@ const addTemporarySchedule = async (req, res) => {
         }
 
         schedule. temporaryOverrides.push(overrideData);
-        await Schedule.save();
+        await schedule.save();
         return res.status(200).json({
             success: true,
             message: "Temporary schedule is added successfully.",

@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const timeWindowSchema = new mongoose.Schema({
     days: [{
         type: String,
-        enum: ['Friday', 'Saturday', 'Sunday'],
+        enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
         required: true 
     }],
     startTime: {

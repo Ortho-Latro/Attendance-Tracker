@@ -4,7 +4,7 @@ import connectDB from './config/db.js';
 import attendanceRouters from './route/attendanceRoute.js';
 import authRouters from './route/authRoute.js';
 import adminRouters from './route/adminRoute.js';
-import scheduleRouters from './models/Schedule.js';
+import scheduleRouters from './route/scheduleRoute.js';
 import { seedAdmin } from './utils/seedAdmin.js';
 
 //console.time("Entire server startup ");
