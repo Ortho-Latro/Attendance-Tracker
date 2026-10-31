@@ -14,7 +14,7 @@ const seedAdmin = async () => {
         })
 
         if (exisitngAdmin) {
-            console.log('Admin accoutn already existed');
+            console.log('Admin account already existed');
             return;
         }
 

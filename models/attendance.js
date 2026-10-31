@@ -6,6 +6,10 @@ const attendanceSchema = new mongoose.Schema({
         required: true,
         trim: true
     }, 
+    className: {
+        type: String,
+        required: true
+    },
     status: {
         enum: ['present', 'absent', 'late', 'excused'],
         type: String,
@@ -14,7 +18,12 @@ const attendanceSchema = new mongoose.Schema({
     },
     date: {
         type: Date,
+        required: true,
         default: Date.now
+    },
+    checkInTime: {
+        type: Date,
+        required: true
     }
 });
 

@@ -16,4 +16,40 @@ const getDayName = (date = new Date()) => {
     return days[date.getDay()];
 };
 
-export {timeToMinutes, getCurrentTimeInMinutes, getDayName };
+const evaluateAttendanceWindow = (schedule) => {
+    const currentDate = new Date().toISOString().split('T')[0];
+    const todayDayName = getDayName();
+
+    if (schedule.temporaryOverrides && schedule.temporaryOverrides.length > 0) {
+        for (let override of schedule.temporaryOverrides) {
+            const overrideStart = new Date(override.startDate).toISOString().split('T')[0];
+            const overrideEnd = new Date(override.endDate).toISOString().split('T')[0];
+
+            const isDateInRange = currentDate >= overrideStart && currentDate <= overrideEnd;
+            const isDayMatch = override.days.includes(todayDayName);
+
+            if (isDateInRange && isDayMatch) {
+                return {
+                    startTime: override.startTime,
+                    lateThreshold: override.lateThreshold,
+                    endTime: override.endTime
+                };
+            }
+        }
+    }
+
+    if (schedule.regularSchedule && schedule.regularSchedule.length > 0) {
+        for (let regular of schedule.regularSchedule) {
+            if (regular.days.includes(todayDayName)) {
+                return {
+                    startTime: regular.startTime,
+                    lateThreshold: regular.lateThreshold,
+                    endTime: regular.endTime
+                };
+            }
+        }
+    }
+
+    return null;
+}
+export {timeToMinutes, getCurrentTimeInMinutes, getDayName, evaluateAttendanceWindow };

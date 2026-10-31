@@ -1,37 +1,93 @@
 import Attendance from '../models/attendance.js';
+import Schedule from '../models/Schedule.js';
+import { evaluateAttendanceWindow, timeToMinutes, getCurrentTimeInMinutes } from '../utils/timeHelper.js';
 
-// Create a new attendance record
-const createAttendance = async (req, res, next) => {
+// CheckIn students
+const checkInStudent = async (req, res) => {
     try {
-        const { studentId, status, date } = req.body;
-        if (!studentId || !status) {
-            return res.status(400).json({ message: "Student ID and status is required" });
+        const { className, studentId } = req.body;
+        if (!studentId || !className) {
+            return res.status(400).json({ 
+                success: false,
+                message:"Please provide both a class name and a student ID."
+            });
         }
 
-        const recordDate = date ? new Date(date) : newDate();
-        recordDate.setUTCHours(0, 0, 0, 0);
+        const schedule = await Schedule.findOne({ className: className.trim()});
+        if (!schedule) {
+            return res.status(404).json({
+                success: false,
+                message: `No schedule found for class: '${className}'.`
+            });
+        }
 
-        const existingRecord = await Attendance.findOne({
+        const activeWindow = evaluateAttendanceWindow(schedule);
+        if(!activeWindow) {
+            return res.status(400).json({
+                success: false,
+                message: "Attendance is closed. No class is scheduled for today."
+            });
+        }
+
+        const currentTime = getCurrentTimeInMinutes();
+        const startMinutes = timeToMinutes(activeWindow.startTime);
+        const lateMinutes = timeToMinutes(activeWindow.lateThreshold);
+        const endMinutes = timeToMinutes(activeWindow.endTime);
+
+        let attendanceStatus = "";
+
+        if (currentTime < startMinutes) {
+            return res.status(400).json({
+                success: false,
+                message: "Check-in failed: Class has not started yet."
+            });
+        } else if (currentTime >= startMinutes && currentTime <= lateMinutes) {
+            attendanceStatus = "present";
+        } else if (currentTime >= startMinutes && currentTime >= lateMinutes) {
+            attendanceStatus = "late";
+        } else {
+            return res.status(400).json({
+                success:false,
+                message:"Check-in failed: Attendance winow is closed for today."
+            });
+        }
+
+        const todayDate = new Date().toISOString().split('T')[0];
+
+        const existingAttendance = await Attendance.findOne({
             studentId,
-            date: recordDate
+            className: className.trim(),
+            date: todayDate
         });
 
-        if(existingRecord) {
-            return res.status(400).json({message: "Attendance record already exisits for this specific student today"});
+        if (existingAttendance) {
+            return res.status(400).json({
+                success: false,
+                message: "Check-in failed: Student has already checked in for this class today."
+            });
         }
 
-        const attendanceRecord = new Attendance({ studentId, 
-        status,
-        date: recordDate
-    });
-        await attendanceRecord.save(); 
-        return res.status(201).json({
+        const newAttendance = new Attendance({
+            studentId,
+            className: className.trim(),
+            date: todayDate,
+            status: attendanceStatus,
+            checkInTime: new Date()
+        });
+
+        await newAttendance.save();
+
+        return res.status(200).json({
             success: true,
-            message: "Attendance record created successfully",
-            data: attendanceRecord
-        })
+            message: `Check-in recorded successfully as ${attendanceStatus}.`,
+            data: newAttendance
+        });
+
     } catch (error) {
-        next(error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to process check-in."
+        });
     }
 };
 
@@ -79,35 +135,60 @@ const getStudentAttendance = async (req, res, next) =>{
 // Update an attendance record
 const updateAttendance = async (req, res, next) => {
     try {
-        const studentId = decodeURIComponent(req.params.studentId);
+        const studentId = req.params.studentId;
         const { date, status } = req.body;
 
         if (!date || !status) {
-            return res.status(400).json({message: "Both 'date' and new 'status' are required"});
+            return res.status(400).json({
+                message: "Both 'date' and new 'status' are required"
+            });
         }
 
         const targetDate = new Date(date);
-        targetDate.setUTCHours(0, 0, 0, 0);
+
+        // Check whether the date is valid
+        if (isNaN(targetDate.getTime())) {
+            return res.status(400).json({
+                message: "Invalid date format"
+            });
+        }
+
+        // Define the beginning of the requested day
+        const startOfDay = new Date(targetDate);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+
+        // Define the beginning of the next day
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
 
         const updateRecord = await Attendance.findOneAndUpdate(
-            { studentId, date: targetDate },
+            {
+                studentId,
+                date: {
+                    $gte: startOfDay,
+                    $lt: endOfDay
+                }
+            },
             { status },
             { new: true, runValidators: true }
         );
 
         if (!updateRecord) {
-            return res.status(404).json({ message: "Attendance record not found for this student" });
+            return res.status(404).json({
+                message: "Attendance record not found for this student"
+            });
         }
 
         return res.status(200).json({
-            success: true, 
-            message: "Attendance record update successfully",
+            success: true,
+            message: "Attendance record updated successfully",
             data: updateRecord
         });
+
     } catch (error) {
         next(error);
     }
-}
+};
 
 //Delete an existing attendance record
 const deleteAttendance = async(req, res, next) => {
@@ -140,4 +221,4 @@ const deleteAttendance = async(req, res, next) => {
     }
 } 
 
-export { createAttendance, fetchAttendance, getStudentAttendance, updateAttendance, deleteAttendance };
+export { checkInStudent, fetchAttendance, getStudentAttendance, updateAttendance, deleteAttendance };

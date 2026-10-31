@@ -5,5 +5,5 @@ import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
 router.post('/students', protect, adminOnly, createStudent);
 router.get('/students', protect, adminOnly, getAllStudents);
-router.get('/students/:id', protect, adminOnly, getStudentById);
+router.get('/students/:studentId', protect, adminOnly, getStudentById);
 export default router;

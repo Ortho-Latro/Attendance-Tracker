@@ -58,8 +58,8 @@ const getAllStudents = async (req, res, next) => {
 // Retrieve a single student info.
 const getStudentById = async (req, res, next) => {
     try {
-        const {studentId} = req.params;
-        const student = await User.find({role:"user"}).select('fullName studentId -_id');
+        const studentId = decodeURIComponent(req.params.studentId);
+        const student = await User.findOne({ studentId, role: "user" }) .select('fullName studentId role createdAt');
 
         if(!student) {
             return res.status(404).json({message: "Studnet NOT FOUND"});

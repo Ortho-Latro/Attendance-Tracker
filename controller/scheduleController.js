@@ -1,4 +1,5 @@
 import Schedule from "../models/Schedule.js";
+import { filterExpiredOverrides } from "../utils/scheduleHelper.js";
 
 const createOrUpdateSchedule = async (req, res) => {
     try {
@@ -87,5 +88,85 @@ const addTemporarySchedule = async (req, res) => {
     }
 }
 
+const getAllSchedules = async (req, res) => {
+    try {
+        const scheduleRecords = await Schedule.find({});
 
-export {createOrUpdateSchedule, addTemporarySchedule};
+        for(let schedule of scheduleRecords) {
+            const hasExpired = filterExpiredOverrides(schedule);
+
+            if (hasExpired) {
+                await schedule.save();
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: scheduleRecords
+        });
+
+    } catch(error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to retreive schedule records" 
+        });
+    }
+}
+
+const getScheduleByClass = async (req, res) => {
+    try {
+        const {className} = req.params;
+
+        const scheduleClass = await Schedule.findOne({
+            className: className.trim()
+        });
+
+        if(!scheduleClass) {
+            return res.status(400).json({
+                success: false,
+                message: "Schedule not found for this specific class."
+            });
+        }
+
+        return res.status(200).json({
+            sucess: true,
+            message: `Schedule for class: ${className}.`,
+            data: scheduleClass
+        });
+
+    } catch(error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to retreive schedule record."
+        });
+    }
+}
+
+const deleteSchedule = async (req, res) => {
+    try {
+        const {className} = req.params;
+        const deletedSchedule = await Schedule.findOneAndDelete({
+            className: className.trim()
+        });
+
+        if(!deletedSchedule) {
+            return res.status(400).json({
+                success: false,
+                message: "Schedule not found or already deleted."
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Class schedule is successfully deleted.",
+            data: deletedSchedule.className
+        });
+    } catch(error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to delete schedule."
+        });
+    }
+}
+
+export {createOrUpdateSchedule, addTemporarySchedule, getAllSchedules, getScheduleByClass, deleteSchedule};
